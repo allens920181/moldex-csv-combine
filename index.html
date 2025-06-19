@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV File Merger</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #e0e6ed;
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #fafbfc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            color: #718096;
+            font-size: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #e2e8f0;
+            color: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4fd1c7 0%, #81c784 100%);
+            box-shadow: 0 8px 20px rgba(79, 209, 199, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 12px 30px rgba(79, 209, 199, 0.4);
+        }
+
+        .btn-donate {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8a80 100%);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-donate:hover {
+            box-shadow: 0 12px 30px rgba(255, 107, 107, 0.4);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .file-list {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .file-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .file-icon {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: 600;
+        }
+
+        .file-details h4 {
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .file-details p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.processing {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .preview-section {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .preview-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .preview-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 0 0 20px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 16px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CSV File Merger</h1>
+            <p>Combine multiple CSV files from different folders into one unified file</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-area" onclick="document.getElementById('folderInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop folders here or click to select</div>
+                <div class="upload-hint">Select folders containing "翹曲.csv" or "Warpage.csv" files</div>
+            </div>
+
+            <input type="file" id="folderInput" class="file-input" webkitdirectory multiple>
+
+            <div id="fileList" class="file-list" style="display: none;">
+                <h3 class="section-title">Detected CSV Files</h3>
+                <div id="fileItems"></div>
+            </div>
+
+            <div id="progressSection" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText" style="text-align: center; color: #718096;">Processing files...</div>
+            </div>
+
+            <div id="previewSection" class="preview-section" style="display: none;">
+                <h3 class="section-title">Preview (First 10 rows)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="preview-table" id="previewTable">
+                        <thead id="previewHead"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-secondary" id="previewBtn" onclick="previewMergedData()" disabled>
+                    Preview Data
+                </button>
+                <button class="btn" id="downloadBtn" onclick="downloadMergedCSV()" disabled>
+                    Download CSV
+                </button>
+                <a href="https://buymeacoffee.com/allenliuuu" target="_blank" class="btn btn-donate">
+                    ☕ Buy Me a Coffee
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p style="color: #718096;">
+                Supports UTF-8 encoding with BOM for proper Chinese character display
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        let mergedData = [];
+        let csvHeaders = [];
+
+        // File input handler
+        document.getElementById('folderInput').addEventListener('change', handleFileSelection);
+
+        // Drag and drop handlers
+        const uploadArea = document.querySelector('.upload-area');
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const items = e.dataTransfer.items;
+            if (items) {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i].webkitGetAsEntry();
+                    if (item && item.isDirectory) {
+                        traverseDirectory(item);
+                    }
+                }
+            }
+        }
+
+        function traverseDirectory(directoryEntry, path = '') {
+            const reader = directoryEntry.createReader();
+            reader.readEntries((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isFile) {
+                        const fileName = entry.name.toLowerCase();
+                        if (fileName === '翹曲.csv' || fileName === 'warpage.csv') {
+                            entry.file((file) => {
+                                const folderPath = getFolderPath(entry.fullPath);
+                                selectedFiles.push({ file, folderPath });
+                                updateFileList();
+                            });
+                        }
+                    } else if (entry.isDirectory) {
+                        traverseDirectory(entry, path + entry.name + '/');
+                    }
+                });
+            });
+        }
+
+        function handleFileSelection(event) {
+            const files = Array.from(event.target.files);
+            selectedFiles = [];
+
+            files.forEach(file => {
+                const fileName = file.name.toLowerCase();
+                if (fileName === '翹曲.csv' || fileName === 'warpage.csv') {
+                    const folderPath = getFolderPath(file.webkitRelativePath);
+                    selectedFiles.push({ file, folderPath });
+                }
+            });
+
+            updateFileList();
+        }
+
+        function getFolderPath(fullPath) {
+            const pathParts = fullPath.split('/');
+            if (pathParts.length >= 3) {
+                return pathParts.slice(-3, -1).join('/');
+            } else if (pathParts.length >= 2) {
+                return pathParts.slice(-2, -1)[0];
+            }
+            return 'Unknown Folder';
+        }
+
+        function updateFileList() {
+            const fileListDiv = document.getElementById('fileList');
+            const fileItemsDiv = document.getElementById('fileItems');
+            
+            if (selectedFiles.length === 0) {
+                fileListDiv.style.display = 'none';
+                document.getElementById('previewBtn').disabled = true;
+                document.getElementById('downloadBtn').disabled = true;
+                return;
+            }
+
+            fileListDiv.style.display = 'block';
+            fileItemsDiv.innerHTML = '';
+
+            selectedFiles.forEach((fileObj, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-icon">CSV</div>
+                        <div class="file-details">
+                            <h4>${fileObj.file.name}</h4>
+                            <p>Source: ${fileObj.folderPath}</p>
+                        </div>
+                    </div>
+                    <div class="status success">Ready</div>
+                `;
+                fileItemsDiv.appendChild(fileItem);
+            });
+
+            document.getElementById('previewBtn').disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        async function previewMergedData() {
+            if (selectedFiles.length === 0) return;
+
+            showProgress();
+            await processCsvFiles();
+            displayPreview();
+            hideProgress();
+        }
+
+        async function processCsvFiles() {
+            mergedData = [];
+            csvHeaders = [];
+            
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const fileObj = selectedFiles[i];
+                updateProgress((i / selectedFiles.length) * 100, `Processing ${fileObj.file.name}...`);
+                
+                try {
+                    const csvText = await readFileAsText(fileObj.file);
+                    const rows = parseCSV(csvText);
+                    
+                    if (rows.length > 0) {
+                        // Set headers from first file
+                        if (csvHeaders.length === 0) {
+                            csvHeaders = rows[0];
+                        }
+                        
+                        // Add source row
+                        const sourceRow = new Array(csvHeaders.length).fill('');
+                        sourceRow[0] = `Source: ${fileObj.folderPath}`;
+                        mergedData.push(sourceRow);
+                        
+                        // Add data rows (skip header)
+                        for (let j = 1; j < rows.length; j++) {
+                            if (rows[j].some(cell => cell.trim() !== '')) {
+                                mergedData.push(rows[j]);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error processing file:', fileObj.file.name, error);
+                }
+            }
+            
+            updateProgress(100, 'Processing complete!');
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        function parseCSV(text) {
+            const rows = [];
+            const lines = text.split('\n');
+            
+            for (let line of lines) {
+                if (line.trim() === '') continue;
+                
+                const row = [];
+                let currentField = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(currentField.trim());
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
+                }
+                
+                row.push(currentField.trim());
+                rows.push(row);
+            }
+            
+            return rows;
+        }
+
+        function displayPreview() {
+            const previewSection = document.getElementById('previewSection');
+            const previewHead = document.getElementById('previewHead');
+            const previewBody = document.getElementById('previewBody');
+            
+            previewSection.style.display = 'block';
+            
+            // Clear previous content
+            previewHead.innerHTML = '';
+            previewBody.innerHTML = '';
+            
+            if (csvHeaders.length > 0) {
+                const headerRow = document.createElement('tr');
+                csvHeaders.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                previewHead.appendChild(headerRow);
+            }
+            
+            // Show first 10 rows
+            const previewRows = mergedData.slice(0, 10);
+            previewRows.forEach(row => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell || '';
+                    tr.appendChild(td);
+                });
+                previewBody.appendChild(tr);
+            });
+        }
+
+        async function downloadMergedCSV() {
+            if (selectedFiles.length === 0) return;
+
+            showProgress();
+            
+            if (mergedData.length === 0) {
+                await processCsvFiles();
+            }
+            
+            // Create CSV content with BOM for UTF-8
+            let csvContent = '\ufeff'; // UTF-8 BOM
+            
+            // Add headers
+            if (csvHeaders.length > 0) {
+                csvContent += csvHeaders.map(header => `"${header}"`).join(',') + '\n';
+            }
+            
+            // Add data
+            mergedData.forEach(row => {
+                const csvRow = row.map(cell => `"${cell}"`).join(',');
+                csvContent += csvRow + '\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'download.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            hideProgress();
+        }
+
+        function showProgress() {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('previewBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
+        }
+
+        function hideProgress() {
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('previewBtn').disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+    </script>
+</body>
+</html>
